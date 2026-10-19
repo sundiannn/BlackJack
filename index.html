@@ -147,7 +147,8 @@
     <!-- Game Screen -->
     <div id="game-screen" class="screen">
         <div class="top-bar">
-            <button onclick="cashOut()" style="font-size: 1rem; padding: 5px 10px; margin:0; color:#d42e2e; border-color:#d42e2e;">結算</button>
+            <!-- 這裡改成 Leave -->
+            <button onclick="cashOut()" style="font-size: 1rem; padding: 5px 10px; margin:0; color:#d42e2e; border-color:#d42e2e;">Leave</button>
             <div class="info-group">
                 <div id="bankroll-display">Bank: $1000</div>
                 <div id="bet-display">Bet: $0</div>
@@ -224,20 +225,21 @@
         const volDisplay = document.getElementById('vol-display');
 
         // --- Audio Functions ---
+        // 加入了 catch 錯誤提示，如果缺檔案可以在開發者工具(F12)看到
         function playClickSound() {
             let snd = new Audio('assets/click.mp3');
             snd.volume = masterVolume;
-            snd.play().catch(e=>{});
+            snd.play().catch(e => console.log('Audio file not found or blocked:', e));
         }
         function playCardSound() {
             let snd = new Audio('assets/card.mp3');
             snd.volume = masterVolume;
-            snd.play().catch(e=>{});
+            snd.play().catch(e => console.log('Audio file not found or blocked:', e));
         }
         function playChipSound() {
             let snd = new Audio('assets/chip.mp3');
             snd.volume = masterVolume;
-            snd.play().catch(e=>{});
+            snd.play().catch(e => console.log('Audio file not found or blocked:', e));
         }
         function changeVolume(val) {
             masterVolume = val / 100;
