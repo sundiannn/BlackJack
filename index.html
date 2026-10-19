@@ -147,7 +147,7 @@
     <!-- Game Screen -->
     <div id="game-screen" class="screen">
         <div class="top-bar">
-            <!-- 這裡改成 Leave -->
+            <!-- 結算按鈕 -->
             <button onclick="cashOut()" style="font-size: 1rem; padding: 5px 10px; margin:0; color:#d42e2e; border-color:#d42e2e;">Leave</button>
             <div class="info-group">
                 <div id="bankroll-display">Bank: $1000</div>
@@ -167,12 +167,19 @@
         </div>
 
         <div class="controls">
-            <div id="betting-controls" class="chip-container">
-                <div class="chip" onclick="placeBet(10)">$10</div>
-                <div class="chip" onclick="placeBet(50)">$50</div>
-                <div class="chip" onclick="placeBet(100)">$100</div>
-                <div class="chip" data-val="1000" onclick="placeBet(1000)">$1000</div>
-                <button onclick="dealInit()" id="deal-btn" disabled>DEAL</button>
+            <!-- 籌碼與下注控制區 -->
+            <div id="betting-controls" style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
+                <div class="chip-container">
+                    <div class="chip" onclick="placeBet(10)">$10</div>
+                    <div class="chip" onclick="placeBet(50)">$50</div>
+                    <div class="chip" onclick="placeBet(100)">$100</div>
+                    <div class="chip" data-val="1000" onclick="placeBet(1000)">$1000</div>
+                </div>
+                <div class="action-btns">
+                    <!-- 新增的 CLEAR 按鈕 -->
+                    <button onclick="clearBet()" id="clear-btn" disabled style="color:#d42e2e; border-color:#d42e2e;">CLEAR</button>
+                    <button onclick="dealInit()" id="deal-btn" disabled>DEAL</button>
+                </div>
             </div>
             
             <div id="action-controls" class="action-btns" style="display: none;">
@@ -215,6 +222,7 @@
         const bettingControls = document.getElementById('betting-controls');
         const actionControls = document.getElementById('action-controls');
         const dealBtn = document.getElementById('deal-btn');
+        const clearBtn = document.getElementById('clear-btn'); // 綁定 CLEAR 按鈕
         const doubleBtn = document.getElementById('double-btn');
         const hitBtn = document.getElementById('hit-btn');
         const standBtn = document.getElementById('stand-btn');
@@ -225,7 +233,6 @@
         const volDisplay = document.getElementById('vol-display');
 
         // --- Audio Functions ---
-        // 加入了 catch 錯誤提示，如果缺檔案可以在開發者工具(F12)看到
         function playClickSound() {
             let snd = new Audio('assets/click.mp3');
             snd.volume = masterVolume;
@@ -362,6 +369,15 @@
                 currentBet += amount;
                 updateUI();
             }
+        }
+
+        // 清除注碼功能
+        function clearBet() {
+            if (currentBet === 0) return;
+            playClickSound();
+            bankroll += currentBet; // 把籌碼退回本金
+            currentBet = 0;         // 注碼歸零
+            updateUI();
         }
 
         function resetHand() {
@@ -556,6 +572,7 @@
             bankrollEl.innerText = `Bank: $${bankroll}`;
             betEl.innerText = `Bet: $${currentBet}`;
             dealBtn.disabled = currentBet === 0;
+            if(clearBtn) clearBtn.disabled = currentBet === 0; // 當沒有下注時，CLEAR 按鈕禁用
 
             // Player cards
             playerCardsEl.innerHTML = '';
