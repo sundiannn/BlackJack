@@ -19,7 +19,7 @@
         }
         .screen {
             display: none; flex-direction: column; align-items: center; text-align: center;
-            width: 100%; max-width: 800px;
+            width: 100%; max-width: 800px; position: relative;
         }
         .screen.active { display: flex; }
         h1 { color: var(--gold); font-size: 3rem; text-shadow: 2px 2px 4px #000; }
@@ -44,12 +44,23 @@
         .color-swatch[data-color="yellow"] { background: #d4af37; }
         .color-swatch[data-color="blue"] { background: #2e5cb8; }
         .color-swatch[data-color="green"] { background: #2e8b57; }
+        .volume-control { margin: 20px 0; font-size: 1.2rem; }
+        input[type="range"] { cursor: pointer; width: 200px; accent-color: var(--gold); }
 
         /* Game Screen */
-        .top-bar { display: flex; justify-content: space-between; width: 100%; padding: 20px; font-size: 1.5rem; }
-        .table-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 20px; font-size: 1.2rem; box-sizing: border-box; }
+        .info-group { display: flex; gap: 20px; font-size: 1.5rem; }
+        .table-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; position: relative; }
         .hand { display: flex; justify-content: center; min-height: 140px; margin-bottom: 10px; }
         .score { color: var(--gold); font-size: 1.2rem; margin-bottom: 20px; height: 1.5em;}
+        
+        /* Floating Result Text */
+        #hand-result {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 3.5rem; font-weight: bold; color: var(--gold);
+            text-shadow: 0 0 15px rgba(0,0,0,0.8), 2px 2px 4px #000;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 50; white-space: nowrap;
+        }
         
         /* Cards */
         .card {
@@ -91,12 +102,13 @@
         /* Endings Overlay */
         #ending-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.9); display: none; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 100;
+            background: rgba(0,0,0,0.95); display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100; text-align: center;
         }
         #ending-overlay.active { display: flex; }
-        .ending-text { color: #d42e2e; font-size: 5rem; font-weight: bold; text-align: center; line-height: 1.2; text-shadow: 0 0 10px rgba(212,46,46,0.8); }
+        .ending-text { color: #d42e2e; font-size: 5rem; font-weight: bold; line-height: 1.2; text-shadow: 0 0 10px rgba(212,46,46,0.8); }
         .ending-text.rich { color: var(--gold); text-shadow: 0 0 10px rgba(212,175,55,0.8); }
+        .profit-text { font-size: 3rem; color: var(--text-color); margin-top: 20px; text-shadow: none; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -110,7 +122,7 @@
     <div id="main-menu" class="screen">
         <h1>BLACKJACK</h1>
         <button onclick="startGame()">START</button>
-        <button onclick="showScreen('settings-screen')">SETTINGS</button>
+        <button onclick="navTo('settings-screen')">SETTINGS</button>
     </div>
 
     <!-- Settings Screen -->
@@ -118,26 +130,37 @@
         <h1>SETTINGS</h1>
         <p>Select Theme Color:</p>
         <div class="color-picker">
-            <div class="color-swatch" data-color="red" onclick="setTheme('#d42e2e')"></div>
-            <div class="color-swatch" data-color="yellow" onclick="setTheme('#d4af37')"></div>
-            <div class="color-swatch" data-color="blue" onclick="setTheme('#2e5cb8')"></div>
-            <div class="color-swatch" data-color="green" onclick="setTheme('#2e8b57')"></div>
+            <div class="color-swatch" data-color="red" onclick="setTheme('#d42e2e'); playClickSound();"></div>
+            <div class="color-swatch" data-color="yellow" onclick="setTheme('#d4af37'); playClickSound();"></div>
+            <div class="color-swatch" data-color="blue" onclick="setTheme('#2e5cb8'); playClickSound();"></div>
+            <div class="color-swatch" data-color="green" onclick="setTheme('#2e8b57'); playClickSound();"></div>
         </div>
-        <button onclick="showScreen('main-menu')">BACK</button>
+        
+        <div class="volume-control">
+            <p>Master Volume: <span id="vol-display">50%</span></p>
+            <input type="range" id="vol-slider" min="0" max="100" value="50" oninput="changeVolume(this.value)">
+        </div>
+
+        <button onclick="navTo('main-menu')">MAIN MENU</button>
     </div>
 
     <!-- Game Screen -->
     <div id="game-screen" class="screen">
         <div class="top-bar">
-            <div id="bankroll-display">Bank: $1000</div>
-            <div id="bet-display">Bet: $0</div>
-            <button onclick="showScreen('main-menu')" style="font-size: 1rem; padding: 5px 10px; margin:0;">Menu</button>
+            <button onclick="cashOut()" style="font-size: 1rem; padding: 5px 10px; margin:0; color:#d42e2e; border-color:#d42e2e;">結算</button>
+            <div class="info-group">
+                <div id="bankroll-display">Bank: $1000</div>
+                <div id="bet-display">Bet: $0</div>
+            </div>
+            <button onclick="navTo('main-menu')" style="font-size: 1rem; padding: 5px 10px; margin:0;">MAIN MENU</button>
         </div>
 
         <div class="table-area">
             <div class="score" id="dealer-score-display">Dealer: ?</div>
             <div class="hand" id="dealer-hand"></div>
             
+            <div id="hand-result"></div>
+
             <div class="hand" id="player-hand"></div>
             <div class="score" id="player-score-display">Player: 0</div>
         </div>
@@ -152,13 +175,9 @@
             </div>
             
             <div id="action-controls" class="action-btns" style="display: none;">
-                <button onclick="hit()">HIT</button>
-                <button onclick="stand()">STAND</button>
-                <button onclick="doubleDown()" id="double-btn">DOUBLE</button>
-            </div>
-
-            <div id="next-hand-controls" class="action-btns" style="display: none;">
-                <button onclick="resetHand()">NEXT HAND</button>
+                <button id="hit-btn" onclick="hit()">HIT</button>
+                <button id="stand-btn" onclick="stand()">STAND</button>
+                <button id="double-btn" onclick="doubleDown()">DOUBLE</button>
             </div>
         </div>
     </div>
@@ -166,18 +185,24 @@
     <!-- Ending Overlay -->
     <div id="ending-overlay">
         <div class="ending-text" id="ending-message"></div>
-        <button onclick="resetGameAndToMenu()" style="margin-top: 30px;">MAIN MENU</button>
+        <button onclick="resetGameAndToMenu()" style="margin-top: 40px;">MAIN MENU</button>
     </div>
 
+    <!-- 隱藏的背景音樂播放器 -->
+    <audio id="bg-music">
+        <source src="assets/bgm.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
-        // State variables
+        // State & Settings variables
         let bankroll = 1000;
         let currentBet = 0;
         let deck = [];
         let playerHand = [];
         let dealerHand = [];
         let dealerHidden = true;
-        let gameOver = false;
+        let masterVolume = 0.5;
+        let isDealing = false;
 
         // DOM Elements
         const dealerCardsEl = document.getElementById('dealer-hand');
@@ -188,11 +213,49 @@
         const betEl = document.getElementById('bet-display');
         const bettingControls = document.getElementById('betting-controls');
         const actionControls = document.getElementById('action-controls');
-        const nextHandControls = document.getElementById('next-hand-controls');
         const dealBtn = document.getElementById('deal-btn');
         const doubleBtn = document.getElementById('double-btn');
+        const hitBtn = document.getElementById('hit-btn');
+        const standBtn = document.getElementById('stand-btn');
         const endingOverlay = document.getElementById('ending-overlay');
         const endingMessage = document.getElementById('ending-message');
+        const handResultEl = document.getElementById('hand-result');
+        const bgMusic = document.getElementById('bg-music');
+        const volDisplay = document.getElementById('vol-display');
+
+        // --- Audio Functions ---
+        function playClickSound() {
+            let snd = new Audio('assets/click.mp3');
+            snd.volume = masterVolume;
+            snd.play().catch(e=>{});
+        }
+        function playCardSound() {
+            let snd = new Audio('assets/card.mp3');
+            snd.volume = masterVolume;
+            snd.play().catch(e=>{});
+        }
+        function playChipSound() {
+            let snd = new Audio('assets/chip.mp3');
+            snd.volume = masterVolume;
+            snd.play().catch(e=>{});
+        }
+        function changeVolume(val) {
+            masterVolume = val / 100;
+            bgMusic.volume = masterVolume;
+            volDisplay.innerText = val + "%";
+            playClickSound();
+        }
+
+        // BGM 循環休息 2-3 秒的邏輯
+        bgMusic.addEventListener('ended', () => {
+            const pauseTime = Math.floor(Math.random() * 1000) + 2000; // 2000ms 到 3000ms 之間
+            setTimeout(() => {
+                bgMusic.play().catch(e => console.log(e));
+            }, pauseTime);
+        });
+
+        // Utils
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
         // Initialization
         setTimeout(() => {
@@ -202,7 +265,16 @@
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
-            endingOverlay.classList.remove('active'); // 清除遮罩
+            endingOverlay.classList.remove('active'); 
+        }
+
+        function navTo(screenId) {
+            playClickSound();
+            if (screenId === 'main-menu' && currentBet > 0 && actionControls.style.display !== 'none') {
+                // 如果在遊戲進行中按下 MAIN MENU，視為投降，會重置（保護機制）
+                resetHand(); 
+            }
+            showScreen(screenId);
         }
 
         function setTheme(colorHex) {
@@ -210,13 +282,35 @@
         }
 
         function startGame() {
+            playClickSound();
             bankroll = 1000;
             resetHand();
             showScreen('game-screen');
+            
+            // 播放背景音樂
+            bgMusic.volume = masterVolume;
+            bgMusic.play().catch(e => console.log('Auto-play prevented'));
         }
 
         function resetGameAndToMenu() {
+            playClickSound();
             showScreen('main-menu');
+        }
+
+        // 結算功能
+        function cashOut() {
+            playClickSound();
+            if (isDealing || (currentBet > 0 && actionControls.style.display !== 'none')) {
+                // 發牌中或遊戲進行中不可結算
+                return;
+            }
+            let profit = bankroll - 1000;
+            let sign = profit >= 0 ? '+' : '-';
+            let color = profit >= 0 ? 'var(--gold)' : '#d42e2e';
+            
+            endingMessage.innerHTML = `YOU LEFT THE CASINO<br><div class="profit-text">Profit: <span style="color:${color}; font-weight:bold;">${sign}$${Math.abs(profit)}</span></div>`;
+            endingMessage.className = "ending-text rich";
+            endingOverlay.classList.add('active');
         }
 
         // Deck logic
@@ -229,7 +323,7 @@
                     let weight = parseInt(value);
                     if (['J', 'Q', 'K'].includes(value)) weight = 10;
                     if (value === 'A') weight = 11;
-                    deck.push({ suit, value, weight, isNew: true }); // 加入 isNew 標記
+                    deck.push({ suit, value, weight, isNew: true }); 
                 }
             }
             // Shuffle
@@ -260,6 +354,7 @@
 
         // Betting phase
         function placeBet(amount) {
+            playChipSound();
             if (bankroll >= amount) {
                 bankroll -= amount;
                 currentBet += amount;
@@ -272,71 +367,119 @@
             dealerHand = [];
             currentBet = 0;
             dealerHidden = true;
-            gameOver = false;
+            handResultEl.style.opacity = 0;
+            
             bettingControls.style.display = 'flex';
             actionControls.style.display = 'none';
-            nextHandControls.style.display = 'none';
             updateUI();
         }
 
-        // Game phases
-        function dealInit() {
+        // Game phases - Sequential Dealing
+        async function dealInit() {
             if (currentBet === 0) return;
-            createDeck();
-            playerHand.push(drawCard());
-            dealerHand.push(drawCard());
-            playerHand.push(drawCard());
-            dealerHand.push(drawCard());
-            
+            playClickSound();
+            isDealing = true;
             bettingControls.style.display = 'none';
+            createDeck();
+
+            // P1
+            playerHand.push(drawCard());
+            playCardSound();
+            updateUI();
+            await sleep(400);
+
+            // D1
+            dealerHand.push(drawCard());
+            playCardSound();
+            updateUI();
+            await sleep(400);
+
+            // P2
+            playerHand.push(drawCard());
+            playCardSound();
+            updateUI();
+            await sleep(400);
+
+            // D2
+            dealerHand.push(drawCard());
+            playCardSound();
+            updateUI();
+            await sleep(400);
+            
+            isDealing = false;
             actionControls.style.display = 'flex';
             doubleBtn.disabled = bankroll < currentBet; 
-            updateUI();
+            
             checkBlackjack();
         }
 
-        function hit() {
+        async function hit() {
+            playClickSound();
             doubleBtn.disabled = true; 
+            
             playerHand.push(drawCard());
+            playCardSound();
             updateUI();
+            await sleep(400);
+
             if (calculateScore(playerHand) > 21) {
-                endHand('BUST! You Lose.', -1);
+                processEndHand('BUST!', -1);
             }
         }
 
-        function stand() {
+        async function stand() {
+            playClickSound();
             dealerHidden = false;
             updateUI();
+            await sleep(400);
             dealerTurn();
         }
 
-        function doubleDown() {
+        async function doubleDown() {
+            playClickSound();
             if (bankroll >= currentBet) {
                 bankroll -= currentBet;
                 currentBet *= 2;
+                
                 playerHand.push(drawCard());
+                playCardSound();
                 updateUI();
+                await sleep(400);
                 
                 if (calculateScore(playerHand) > 21) {
-                    endHand('BUST! You Lose.', -1);
+                    processEndHand('BUST!', -1);
                 } else {
-                    stand();
+                    dealerHidden = false;
+                    updateUI();
+                    await sleep(400);
+                    dealerTurn();
                 }
             }
         }
 
-        function dealerTurn() {
-            const playDealer = () => {
-                let dScore = calculateScore(dealerHand);
-                if (dScore < 17) {
-                    dealerHand.push(drawCard());
-                    updateUI();
-                    setTimeout(playDealer, 800);
-                } else {
-                    determineWinner();
-                }
-            };
-            setTimeout(playDealer, 800);
+        async function dealerTurn() {
+            disableActionBtns();
+            let dScore = calculateScore(dealerHand);
+            
+            while (dScore < 17) {
+                dealerHand.push(drawCard());
+                playCardSound();
+                updateUI();
+                await sleep(600);
+                dScore = calculateScore(dealerHand);
+            }
+            determineWinner();
+        }
+
+        function disableActionBtns() {
+            hitBtn.disabled = true;
+            standBtn.disabled = true;
+            doubleBtn.disabled = true;
+        }
+
+        function enableActionBtns() {
+            hitBtn.disabled = false;
+            standBtn.disabled = false;
         }
 
         function checkBlackjack() {
@@ -346,9 +489,9 @@
                 dealerHidden = false;
                 updateUI();
                 if (dScore === 21) {
-                    endHand('Push (Both Blackjack)', 0);
+                    processEndHand('PUSH', 0);
                 } else {
-                    endHand('BLACKJACK!', 1.5); // 3:2 payout
+                    processEndHand('BLACKJACK!', 1.5); 
                 }
             }
         }
@@ -357,46 +500,52 @@
             const pScore = calculateScore(playerHand);
             const dScore = calculateScore(dealerHand);
             if (dScore > 21) {
-                endHand('Dealer Busts! You Win!', 1);
+                processEndHand('DEALER BUSTS!', 1);
             } else if (pScore > dScore) {
-                endHand('You Win!', 1);
+                processEndHand('YOU WIN!', 1);
             } else if (pScore < dScore) {
-                endHand('Dealer Wins!', -1);
+                processEndHand('DEALER WINS', -1);
             } else {
-                endHand('Push (Tie)', 0);
+                processEndHand('PUSH', 0);
             }
         }
 
-        function endHand(message, payoutMultiplier) {
-            gameOver = true;
+        async function processEndHand(message, payoutMultiplier) {
             actionControls.style.display = 'none';
+            enableActionBtns(); 
             
-            setTimeout(() => {
-                if (payoutMultiplier === 0) {
-                    bankroll += currentBet;
-                    alert(message);
-                } else if (payoutMultiplier > 0) {
-                    bankroll += currentBet + (currentBet * payoutMultiplier);
-                    alert(message + ' +$' + (currentBet * payoutMultiplier));
-                } else {
-                    alert(message + ' -$' + currentBet);
-                }
-                
-                nextHandControls.style.display = 'flex';
-                updateUI();
-                checkEndings();
-            }, 500);
-        }
+            let resultText = message;
+            if (payoutMultiplier === 0) {
+                bankroll += currentBet;
+                resultText += "<br><span style='font-size:2rem'>±$0</span>";
+            } else if (payoutMultiplier > 0) {
+                let winAmt = currentBet * payoutMultiplier;
+                bankroll += currentBet + winAmt;
+                resultText += `<br><span style='font-size:2rem'>+$${winAmt}</span>`;
+            } else {
+                resultText += `<br><span style='font-size:2rem; color:#d42e2e'>-$${currentBet}</span>`;
+            }
+            
+            updateUI();
+            
+            // 顯示畫面中間的結算文字
+            handResultEl.innerHTML = resultText;
+            handResultEl.style.opacity = 1;
 
-        function checkEndings() {
+            // 等待 2.5 秒讓玩家看清楚加減多少錢
+            await sleep(2500);
+            
             if (bankroll <= 0) {
                 endingMessage.innerHTML = "YOU'RE BROKE";
                 endingMessage.className = "ending-text";
                 endingOverlay.classList.add('active');
             } else if (bankroll >= 10000) {
-                endingMessage.innerHTML = "CASINO KICKED YOU OUT<br>YOU'RE RICH";
+                endingMessage.innerHTML = "CASINO KICKED YOU OUT<br><div class='profit-text' style='color:var(--gold); font-weight:bold;'>YOU'RE RICH</div>";
                 endingMessage.className = "ending-text rich";
                 endingOverlay.classList.add('active');
+            } else {
+                // 如果沒有觸發雙結局，直接自動重新開始下一局 (自動回到下注狀態)
+                resetHand();
             }
         }
 
@@ -417,7 +566,7 @@
                         <div class="bottom-right">${card.value}${card.suit}</div>
                     </div>
                 `;
-                card.isNew = false; // 解除新牌標記
+                card.isNew = false;
             });
             playerScoreEl.innerText = `Player: ${playerHand.length > 0 ? calculateScore(playerHand) : 0}`;
 
@@ -436,7 +585,7 @@
                         </div>
                     `;
                 }
-                card.isNew = false; // 解除新牌標記
+                card.isNew = false;
             });
             
             if (dealerHand.length > 0) {
